@@ -1,0 +1,66 @@
+---
+title: "Prueba Tecnica"
+output: html_notebook
+---
+
+# Limpieza de datos
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+#Bibliotecas
+library(readxl)
+library(dplyr)
+
+#Funciones
+source("R/utils.R")
+
+```
+
+
+```{r}
+
+Eva <- read_excel("Evaluación Consultor inteligencia de datos.xlsx")
+Eva
+```
+
+
+
+```{r}
+colSums(is.na(Eva))
+
+```
+
+
+
+```{r}
+
+Evalim <- Eva %>%
+  filter(if_all(everything(), ~ .x != "NA"))
+
+Evalim <- na.omit(Evalim)
+Evalim <- Evalim[Evalim$`Semanas de Antigüedad` != 0, ]
+Evalim <- Evalim[Evalim$`ID empleado` != 0, ]
+
+summary(Evalim)
+```
+
+```{r}
+colSums(is.na(Evalim))
+
+```
+
+
+```{r}
+conteo_unicos(Evalim)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
