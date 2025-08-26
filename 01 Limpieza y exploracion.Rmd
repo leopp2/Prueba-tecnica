@@ -1,0 +1,229 @@
+---
+title: "Limpieza y exploracion"
+author: "Leonardo Daniel Rosas Rios"
+date: "2025-08-26"
+output: html_document
+---
+
+
+
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+#Bibliotecas
+library(readxl)
+library(dplyr)
+library(ISOweek)
+library(reshape2)
+library(ggplot2)
+library(writexl)
+library(sandwich)   
+library(lmtest)     
+library(GGally)
+library(tseries)
+
+
+
+#Funciones
+source("R/utils.R")
+
+#semilla
+set.seed(123)
+
+
+```
+
+
+
+
+# Lectura de datos
+```{r}
+#Lectura de base de datos
+Eva <- read_excel("Data/Base original.xlsx", sheet = "Sheet1")
+Eva
+
+```
+
+```{r}
+summary(Eva)
+
+```
+
+
+
+```{r}
+colSums(is.na(Eva))
+
+```
+
+```{r}
+conteo_unicos(Eva)
+
+```
+
+
+# Limpieza de datos
+
+```{r}
+
+
+Evalim <- Eva %>%
+  
+  # quitar "NA"
+  filter(if_all(everything(), ~ .x != "NA")) %>%
+  
+  # quitar NAs
+  na.omit() %>%
+  
+  # quitar empleados con ID = 0
+  filter(`ID empleado` != 0) %>%
+  
+  # quiitar objetivos de colocación = 0
+  filter(`Colocación objetivo Asesor` > 0) %>%
+  
+  # cambiar Semana ID a fecha (lunes de la semana ISO)
+  mutate(
+    `Semana ID` = ISOweek2date(
+      paste0(substr(`Semana ID`, 1, 4), "-W", substr(`Semana ID`, 5, 6), "-1")
+    )
+  ) %>%
+  
+  # ordenar por fecha
+  arrange(`Semana ID`)
+  
+summary(Evalim)
+```
+
+
+
+
+
+
+
+
+
+
+```{r}
+colSums(is.na(Evalim))
+
+```
+
+
+```{r}
+conteo_unicos(Evalim)
+
+```
+
+```{r}
+colnames(Evalim)
+```
+
+
+```{r}
+#write_xlsx(Evalim, "Data/Base_limpia.xlsx")
+
+```
+
+
+# Analisis de datos
+
+```{r}
+# columnas que quieres graficar
+cols <- c("Semanas de Antigüedad",
+          "Colocación objetivo Asesor",
+          "Colocación Total",
+          "Cartera Vigente")
+
+# vector de colores (se recicla si hay más columnas)
+colores <- c("blue", "red", "green", "orange")
+
+# for para graficar cada columna
+for (i in seq_along(cols)) {
+  colname <- cols[i]
+  boxplot(Evalim[[colname]],
+          main = colname,
+          col  = colores[i])
+}
+```
+```{r}
+
+# for para graficar cada columna
+for (i in seq_along(cols)) {
+  colname <- cols[i]
+  hist(Evalim[[colname]],
+       main = colname,
+       col  = colores[i],
+       xlab = "")
+}
+
+```
+
+
+```{r}
+
+# sub-data frame con esas columnas
+df_num <- Evalim[cols]
+
+# calcular matriz de correlaciones
+cor_mat <- cor(df_num, use = "complete.obs")
+
+
+
+cor_long <- melt(cor_mat)
+
+ggplot(cor_long, aes(Var1, Var2, fill = value)) +
+  geom_tile() +
+  geom_text(aes(label = round(value, 2)), color = "black") +
+  scale_fill_gradient2(low = "red", high = "blue", mid = "white",
+                       midpoint = 0, limit = c(-1,1)) +
+  theme_minimal(base_size = 12) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  labs(title = "Mapa de calor de correlaciones", x = "", y = "")
+
+```
+
+
+
+
+
+```{r}
+library(ggplot2)
+
+# 1. Antigüedad vs Colocación Total
+ggplot(Evalim, aes(x = `Semanas de Antigüedad`, y = `Colocación Total`)) +
+  geom_point(color = "steelblue1", alpha = 0.7, size = 2) +   # puntos azules
+  geom_smooth(method = "lm", se = FALSE, color = "black", linetype = "solid") + # línea roja
+  labs(title = "Antigüedad vs Colocación Total",
+       x = "Semanas de antigüedad",
+       y = "Colocación Total") +
+  theme_minimal()
+```
+
+
+
+```{r}
+# 2. Antigüedad vs Cartera Vigente
+ggplot(Evalim, aes(x = `Semanas de Antigüedad`, y = `Cartera Vigente`)) +
+  geom_point(color = "lightgreen", alpha = 0.7, size = 2) +   # puntos verdes
+  geom_smooth(method = "lm", se = FALSE, color = "orange", linetype = "solid") + # línea naranja
+  labs(title = "Antigüedad vs Cartera Vigente",
+       x = "Semanas de antigüedad",
+       y = "Cartera Vigente") +
+  theme_minimal()
+```
+
+
+
+
+
+
+```{r}
+library(ggplot2)
+
+# 1. Antigüedad vs Colocación objetivo Asesor
+ggplot(Evalim, aes(x = `Semanas de Antigüedad`, y = `Colocación objetivo Asesor`)) +
+  geom_point(color = "#EEEE00", alpha = 0.7, size = 2) +   # puntos azules
+  geom_smooth(method = "lm", se = FALSE, color = "black", linetype = "solid") + # línea roja
+  labs(title = "Antigüedad vs Colocación objetivo Asesor",
+       x = "Semanas de antigüedad",
+       y = "Colocación objetivo Asesor") +
+  theme_minimal()
+```

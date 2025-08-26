@@ -1,0 +1,156 @@
+---
+title: "02 Transformacion y modelaje"
+author: "Leonardo Daniel Rosas Rios"
+date: "2025-08-26"
+output: html_document
+---
+
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+#Bibliotecas
+library(readxl)
+library(dplyr)
+library(ISOweek)
+library(reshape2)
+library(ggplot2)
+library(writexl)
+library(sandwich)   
+library(lmtest)     
+library(GGally)
+library(tseries)
+
+
+
+#Funciones
+source("R/utils.R")
+
+#semilla
+set.seed(123)
+
+
+```
+
+
+# Lectura de datos
+```{r}
+#Lectura de base de datos
+Evalim <- read_excel("Data/Base_limpia.xlsx")
+
+```
+
+
+
+# Modelos
+
+
+
+
+```{r}
+# Modelo 2: Y = Cartera Vigente, X = Semanas de Antigüedad
+modelo1 <- lm(`Cartera Vigente` ~ `Semanas de Antigüedad`, data = Evalim)
+
+# Resumen del modelo
+summary(modelo1)
+```
+
+
+```{r}
+# Todas las variables
+modelo2 <- lm(`Cartera Vigente` ~ `Semanas de Antigüedad` + `Colocación Total` + `Colocación objetivo Asesor`, 
+              data = Evalim)
+
+
+summary(modelo2)
+
+```
+```{r}
+# residuos del modelo
+residuos2 <- residuals(modelo2)
+
+# Test de Jarque-Bera
+jarque.bera.test(residuos2)
+
+```
+```{r}
+par(mfrow = c(2,2))
+plot(modelo2)        
+par(mfrow = c(1,1))
+```
+
+
+
+
+
+
+## Prueba modelo 2
+
+```{r}
+
+# 1) Modelo con logs (respuesta y predictores)
+modelo_log <- lm(
+  log1p(`Cartera Vigente`) ~ log1p(`Semanas de Antigüedad`) +
+                              log1p(`Colocación Total`) +
+                              log1p(`Colocación objetivo Asesor`),
+  data = Evalim
+)
+
+summary(modelo_log)
+```
+
+
+```{r}
+par(mfrow = c(2,2))
+plot(modelo_log)        # 1: resid vs fitted, 2: QQ, 3: Scale-Location, 4: Resid vs leverage
+par(mfrow = c(1,1))
+
+
+```
+
+
+
+```{r}
+# residuos del modelo
+residuos <- residuals(modelo_log)
+
+# Test de Jarque-Bera
+jarque.bera.test(residuos)
+```
+
+
+
+
+
+
+# Cumplimiento de indicadores
+
+
+
+```{r}
+#Indicador de colocacion 
+Evalim$'Cumplimiento colocacion' <- Evalim$`Colocación Total` / Evalim$`Colocación objetivo Asesor`
+Evalim
+```
+
+
+```{r}
+# Predicción de cartera objetivo
+
+Evalim$'Objetivo Cartera' <- predict(modelo1, newdata = Evalim)
+Evalim
+```
+
+
+```{r}
+# Cumplimiento
+Evalim$'Cumplimiento Cartera' <- Evalim$`Cartera Vigente` / Evalim$'Objetivo Cartera'
+Evalim
+```
+
+
+```{r}
+
+#write_xlsx(Evalim, "Data/Base_inidicadores.xlsx")
+
+
+
+```
+
