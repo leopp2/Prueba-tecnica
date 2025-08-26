@@ -42,7 +42,7 @@ Evalim <- read_excel("Data/Base_limpia.xlsx")
 # Modelos
 
 
-
+## Regresion lineal simple 
 
 ```{r}
 # Modelo 1: Y = Cartera Vigente, X = Semanas de Antigüedad
@@ -90,7 +90,7 @@ jarque.bera.test(residuos1)
 
 
 
-
+## Regresion lienal multiple
 
 
 
@@ -129,7 +129,7 @@ par(mfrow = c(1,1))
 
 
 
-## Prueba modelo 2
+## Regresion lineal multiple con transformacion log
 
 ```{r}
 
@@ -168,9 +168,68 @@ residuos <- residuals(modelo_log)
 jarque.bera.test(residuos)
 ```
 
+## Regresion lineal multiple con trasformacion Yeo–Johnson
 
 
 
+```{r}
+library(caret)
+
+# 1) Selecciona SOLO las columnas numéricas que vas a transformar
+vars_num <- c("Semanas de Antigüedad",
+              "Colocación Total",
+              "Colocación objetivo Asesor",
+              "Cartera Vigente")
+
+# 2) Arma un data.frame con esas columnas (y cualquier otra que necesites como ID/semana)
+df_model <- Evalim[, c("Semana ID", vars_num)]
+
+# 3) Preprocesamiento Yeo–Johnson (soporta negativos y ceros)
+pre_yj <- preProcess(df_model[, vars_num], method = "YeoJohnson")
+
+# 4) Aplica la transformación a esas columnas
+df_yj <- df_model
+df_yj[, vars_num] <- predict(pre_yj, df_model[, vars_num])
+
+# 5) Ajusta el modelo lineal en niveles (sobre datos transformados)
+modelo_yj <- lm(`Cartera Vigente` ~
+                  `Semanas de Antigüedad` +
+                  `Colocación Total` +
+                  `Colocación objetivo Asesor`,
+                data = df_yj)
+
+summary(modelo_yj)
+
+```
+
+```{r}
+par(mfrow = c(2,2))
+
+plot(modelo_yj, which = 1, col = "dodgerblue3", pch = 19)   # Residuales vs Ajustados
+plot(modelo_yj, which = 2, col = "gold2", pch = 19)         # QQ-plot
+plot(modelo_yj, which = 3, col = "springgreen3", pch = 19)  # Escala-Localidad
+plot(modelo_yj, which = 5, col = "tomato2", pch = 19)       # Valores influyentes
+
+par(mfrow = c(1,1))
+
+```
+
+
+
+
+
+```{r}
+# Instalar si no lo tienes
+# install.packages("tseries")
+library(tseries)
+
+# Sacar residuos del modelo
+res_yj <- residuals(modelo_yj)
+
+# Test de Jarque-Bera
+jarque.bera.test(res_yj)
+
+```
 
 
 # Cumplimiento de indicadores
@@ -191,6 +250,13 @@ Evalim$'Objetivo Cartera' <- predict(modelo1, newdata = Evalim)
 Evalim
 ```
 
+```{r}
+
+Evalim$'Objetivo Cartera' <- predict(modelo1, newdata = Evalim)
+Evalim
+```
+
+
 
 ```{r}
 # Cumplimiento
@@ -201,9 +267,29 @@ Evalim
 
 ```{r}
 
-#write_xlsx(Evalim, "Data/Base_inidicadores.xlsx")
+colSums(is.na(Evalim))
 
 
 
 ```
+
+
+```{r}
+colnames(Evalim)
+```
+
+
+
+
+```{r}
+#write_xlsx(Evalim, "Data/Base_yjinidicadores.xlsx")
+
+```
+
+
+
+
+
+
+
 

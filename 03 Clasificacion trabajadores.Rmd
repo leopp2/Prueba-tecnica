@@ -6,7 +6,6 @@ output: html_document
 ---
 
 
-# Lectura de datos
 ```{r, echo=TRUE, message=FALSE, warning=FALSE}
 #Bibliotecas
 library(readxl)
@@ -21,9 +20,6 @@ library(GGally)
 library(tseries)
 
 
-
-#Funciones
-source("R/utils.R")
 
 #semilla
 set.seed(123)
@@ -72,7 +68,7 @@ ggplot(Evalim, aes(x = `Cumplimiento colocacion`,
   geom_point(alpha = 0.4, size = 1) +
   geom_vline(xintercept = 1, linetype = "dashed") +
   geom_hline(yintercept = 1, linetype = "dashed") +
-  labs(color = "Nivel productividad",
+  labs(color = "Nivel",
        x = "Cumplimiento Colocación",
        y = "Cumplimiento Cartera") +
   theme_minimal() +
@@ -127,11 +123,77 @@ ggplot(Evalim, aes(x = `Cumplimiento colocacion`,
                    y = `Cumplimiento Cartera`,
                    color = factor(Cluster))) +
   geom_point(alpha = 0.4, size = 1) +
-  labs(color = "Cluster k-means",
+  labs(color = "Cluster",
        x = "Cumplimiento Colocación",
        y = "Cumplimiento Cartera") +
   theme_minimal()
 
 ```
+
+```{r}
+table(Evalim$Cluster)
+prop.table(table(Evalim$Cluster))
+```
+```{r}
+colSums(is.na(Evalim))
+
+```
+
+
+
+
+
+
+
+
+```{r}
+# centros en escala estandarizada (z-score)
+centros_z <- km$centers                     # matriz 4x2
+
+# parámetros de estandarización usados por scale()
+mu  <- attr(features_scaled, "scaled:center")
+sig <- attr(features_scaled, "scaled:scale")
+
+# volver a escala original: x = z * sd + mean
+centros_orig <- sweep(centros_z, 2, sig, `*`)
+centros_orig <- sweep(centros_orig, 2, mu, `+`)
+centros_orig
+
+
+```
+```{r}
+library(dplyr)
+
+Evalim %>%
+  filter(!is.na(Cluster)) %>%
+  group_by(Cluster) %>%
+  summarise(
+    n = n(),
+    mean_cumpl_col = mean(`Cumplimiento colocacion`, na.rm = TRUE),
+    median_cumpl_col = median(`Cumplimiento colocacion`, na.rm = TRUE),
+    mean_cumpl_cart = mean(`Cumplimiento Cartera`, na.rm = TRUE),
+    median_cumpl_cart = median(`Cumplimiento Cartera`, na.rm = TRUE)
+  ) %>%
+  arrange(desc(mean_cumpl_cart), desc(mean_cumpl_col))
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
