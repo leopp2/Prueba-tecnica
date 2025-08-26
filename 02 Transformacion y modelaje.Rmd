@@ -45,12 +45,53 @@ Evalim <- read_excel("Data/Base_limpia.xlsx")
 
 
 ```{r}
-# Modelo 2: Y = Cartera Vigente, X = Semanas de Antigüedad
+# Modelo 1: Y = Cartera Vigente, X = Semanas de Antigüedad
 modelo1 <- lm(`Cartera Vigente` ~ `Semanas de Antigüedad`, data = Evalim)
 
 # Resumen del modelo
 summary(modelo1)
 ```
+
+
+
+
+$$
+\text{Cartera Vigente} = 9{,}285{,}302 \;+\; 31{,}297 \times \text{Semanas de Antigüedad}
+$$
+
+
+```{r}
+par(mfrow = c(2,2))  
+
+plot(modelo1, which = 1, col = "blue", pch = 19)   # Residuales vs Ajustados
+plot(modelo1, which = 2, col = "red", pch = 19)    # QQ-plot
+plot(modelo1, which = 3, col = "darkgreen", pch = 19) # Escala-Localidad
+plot(modelo1, which = 5, col = "purple", pch = 19) # Valores influyentes
+
+par(mfrow = c(1,1))
+
+```
+
+
+```{r}
+# residuos del modelo
+residuos1 <- residuals(modelo1)
+
+# Test de Jarque-Bera
+jarque.bera.test(residuos1)
+
+```
+
+
+
+
+
+
+
+
+
+
+
 
 
 ```{r}
@@ -71,9 +112,16 @@ jarque.bera.test(residuos2)
 
 ```
 ```{r}
-par(mfrow = c(2,2))
-plot(modelo2)        
+par(mfrow = c(2,2))  
+
+plot(modelo2, which = 1, col = "deepskyblue2", pch = 19)     # Residuales vs Ajustados
+plot(modelo2, which = 2, col = "darkorange1", pch = 19)      # QQ-plot
+plot(modelo2, which = 3, col = "mediumseagreen", pch = 19)   # Escala-Localidad
+plot(modelo2, which = 5, col = "magenta2", pch = 19)         # Valores influyentes
+
 par(mfrow = c(1,1))
+
+
 ```
 
 
@@ -99,7 +147,12 @@ summary(modelo_log)
 
 ```{r}
 par(mfrow = c(2,2))
-plot(modelo_log)        # 1: resid vs fitted, 2: QQ, 3: Scale-Location, 4: Resid vs leverage
+
+plot(modelo_log, which = 1, col = "dodgerblue3", pch = 19)   # Residuales vs Ajustados
+plot(modelo_log, which = 2, col = "gold2", pch = 19)         # QQ-plot
+plot(modelo_log, which = 3, col = "springgreen3", pch = 19)  # Escala-Localidad
+plot(modelo_log, which = 5, col = "tomato2", pch = 19)       # Valores influyentes
+
 par(mfrow = c(1,1))
 
 

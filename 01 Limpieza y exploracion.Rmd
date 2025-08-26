@@ -176,7 +176,7 @@ ggplot(cor_long, aes(Var1, Var2, fill = value)) +
                        midpoint = 0, limit = c(-1,1)) +
   theme_minimal(base_size = 12) +
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
-  labs(title = "Mapa de calor de correlaciones", x = "", y = "")
+  labs(title = "Mapa de correlaciones", x = "", y = "")
 
 ```
 
