@@ -8,11 +8,18 @@ output: html_notebook
 #Bibliotecas
 library(readxl)
 library(dplyr)
+library(ISOweek)
+library(reshape2)
+library(ggplot2)
+
 
 #Funciones
 source("R/utils.R")
 
 ```
+
+
+
 
 
 ```{r}
@@ -23,11 +30,16 @@ Eva
 
 
 
+
 ```{r}
 colSums(is.na(Eva))
 
 ```
 
+```{r}
+sapply(Eva, function(x) sum(!is.finite(as.numeric(x))))
+
+```
 
 
 ```{r}
@@ -52,10 +64,193 @@ colSums(is.na(Evalim))
 conteo_unicos(Evalim)
 
 ```
+```{r}
+Evalim <- Evalim %>%
+  mutate(
+    `Semana ID` = ISOweek2date(
+      paste0(substr(`Semana ID`, 1, 4), "-W", substr(`Semana ID`, 5, 6), "-1")
+    )
+  )
+
+Evalim
+```
+
+```{r}
+colnames(Evalim)
+```
+
+# Analisis de datos
+
+```{r}
+# columnas que quieres graficar
+cols <- c("Semanas de Antigüedad",
+          "Colocación objetivo Asesor",
+          "Colocación Total",
+          "Desempeño Cartera")
+
+# vector de colores (se recicla si hay más columnas)
+colores <- c("blue", "red", "green", "orange")
+
+# for para graficar cada columna
+for (i in seq_along(cols)) {
+  colname <- cols[i]
+  boxplot(Eva[[colname]],
+          main = colname,
+          col  = colores[i])
+}
+```
+```{r}
+
+# for para graficar cada columna
+for (i in seq_along(cols)) {
+  colname <- cols[i]
+  hist(Eva[[colname]],
+       main = colname,
+       col  = colores[i],
+       xlab = "")
+}
+
+```
+
+
+```{r}
+
+# sub-data frame con esas columnas
+df_num <- Eva[cols]
+
+# calcular matriz de correlaciones
+cor_mat <- cor(df_num, use = "complete.obs")
+
+
+
+cor_long <- melt(cor_mat)
+
+ggplot(cor_long, aes(Var1, Var2, fill = value)) +
+  geom_tile() +
+  geom_text(aes(label = round(value, 2)), color = "black") +
+  scale_fill_gradient2(low = "red", high = "blue", mid = "white",
+                       midpoint = 0, limit = c(-1,1)) +
+  theme_minimal(base_size = 12) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  labs(title = "Mapa de calor de correlaciones", x = "", y = "")
+
+```
+
+```{r}
+# instala si hace falta
+# install.packages("GGally")
+library(GGally)
+library(dplyr)
+
+# 1) Elige numéricas y la categoría para colorear (ej. Perfil Sucursal)
+dat <- Eva %>%
+  select(`Semanas de Antigüedad`, `Colocación Total`, `Desempeño Cartera`, `Perfil Sucursal`) %>%
+  tidyr::drop_na()
+
+# 2) Scatter Plot Matrix estilo seaborn (puntos abajo, correlación arriba, densidad en diagonal)
+ggpairs(
+  dat,
+  columns = 1:3,                                # las 3 numéricas
+  mapping = aes(color = `Perfil Sucursal`, alpha = 0.6),
+  diag  = list(continuous = GGally::wrap("densityDiag")),
+  upper = list(continuous = GGally::wrap("cor", size = 4)),  # muestra r
+  lower = list(continuous = GGally::wrap("points", size = 1.6))
+) +
+  theme_minimal() +
+  labs(title = "Scatter Plot Matrix por Perfil de Sucursal",
+       color = "Perfil")
+
+
+```
 
 
 
 
+```{r}
+library(ggplot2)
+
+# 1. Antigüedad vs Colocación Total
+ggplot(Eva, aes(x = `Semanas de Antigüedad`, y = `Colocación Total`)) +
+  geom_point(color = "steelblue", alpha = 0.7, size = 2) +   # puntos azules
+  geom_smooth(method = "lm", se = FALSE, color = "darkred", linetype = "dashed") + # línea roja
+  labs(title = "Antigüedad vs Colocación Total",
+       x = "Semanas de antigüedad",
+       y = "Colocación Total (MXN)") +
+  theme_minimal()
+```
+
+
+
+```{r}
+# 2. Antigüedad vs Cartera Vigente
+ggplot(Eva, aes(x = `Semanas de Antigüedad`, y = `Desempeño Cartera`)) +
+  geom_point(color = "darkgreen", alpha = 0.7, size = 2) +   # puntos verdes
+  geom_smooth(method = "lm", se = FALSE, color = "orange", linetype = "dashed") + # línea naranja
+  labs(title = "Antigüedad vs Cartera Vigente",
+       x = "Semanas de antigüedad",
+       y = "Cartera Vigente (MXN)") +
+  theme_minimal()
+```
+
+
+
+# Modelos
+
+
+
+
+```{r}
+# Modelo 1: Y = Desempeño Cartera, X = Semanas de Antigüedad + Colocación Total + Colocación objetivo Asesor
+modelo1 <- lm(`Desempeño Cartera` ~ `Semanas de Antigüedad` + `Colocación Total` + `Colocación objetivo Asesor`, 
+              data = Evalim)
+
+# Mostrar el resumen clásico
+summary(modelo1)
+
+```
+
+
+
+```{r}
+# Modelo 2: Y = Desempeño Cartera, X = Semanas de Antigüedad
+modelo2 <- lm(`Desempeño Cartera` ~ `Semanas de Antigüedad`, data = Evalim)
+
+# Resumen del modelo
+summary(modelo2)
+
+
+```
+
+
+
+
+
+
+
+
+
+```{r}
+library(ggplot2)
+
+# Vector con los nombres de las variables a graficar
+vars <- c("Semanas de Antigüedad",
+          "Colocación Total",
+          "Colocación objetivo Asesor",
+          "Desempeño Cartera")
+
+# Loop para graficar cada una
+for (v in vars) {
+  p <- ggplot(Evalim, aes(x = `Semana ID`, y = .data[[v]])) +
+    geom_line(color = "steelblue", size = 1) +
+    labs(title = paste("Serie de tiempo de", v),
+         x = "Semana",
+         y = v) +
+    theme_minimal()
+  
+  print(p)  # muestra la gráfica en la consola/visor
+}
+
+```
 
 
 
