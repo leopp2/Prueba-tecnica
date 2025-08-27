@@ -17,6 +17,7 @@ library(sandwich)
 library(lmtest)     
 library(GGally)
 library(tseries)
+library(car)
 
 
 
@@ -124,6 +125,10 @@ par(mfrow = c(1,1))
 
 ```
 
+```{r}
+vif(modelo2)
+
+```
 
 
 
